@@ -1,0 +1,18 @@
+You are a threat intelligence analyst. Extract all Indicators of Compromise (IOCs) from the strings and behavioral analysis below.
+
+Categorize IOCs as:
+- **IP addresses / URLs / Domains**
+- **File paths / Registry keys**
+- **Mutex names / Named pipes**
+- **Hashes** (if any appear in strings)
+- **Other artifacts** (user agents, C2 patterns, etc.)
+
+Only include genuine IOCs — skip obvious false positives like standard Windows system paths or common library strings.
+
+--- EXTRACTED STRINGS ---
+{strings}
+
+--- BEHAVIORAL ANALYSIS ---
+{behavior_summary}
+
+--- INDICATORS OF COMPROMISE ---

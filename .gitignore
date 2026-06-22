@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Reports and analysis output
+reports/
+samples/
+sample/
+
+# Axel partial-download state files
+*.st
+
+# Job resume checkpoints
+resume/
+*.ckpt
+
+# Local config overrides
+config.local.yaml
+*.local.yaml
+
+# YARA compiled rule cache
+*.yarc
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+*.exe
+*.msi
+*.dll
+*.zip
+*.tar*
+.env
+

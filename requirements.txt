@@ -1,0 +1,16 @@
+requests
+pefile
+r2pipe
+yara-python
+python-magic
+watchdog
+ollama             # required when provider=ollama (default)
+anthropic          # required when provider=claude
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+mistune
+rich
+pyyaml
+unipacker          # optional: unpacks MPRESS, ASPack, FSG, PEtite etc. (UPX handled by system upx)

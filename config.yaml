@@ -1,0 +1,69 @@
+# LLM provider: "ollama" (local) or "claude" (Anthropic API)
+provider: ollama
+
+ollama:
+  base_url: http://localhost:11434
+  # 16 GB VRAM options:
+  #   gemma4:12b      ~7.6 GB, 256K context, thinking — recommended
+  #   qwen3.5:9b      ~5-6 GB, large context, thinking
+  #   qwen3.6:27b     ~14-16 GB Q4, best quality, thinking (tight fit)
+  model: gemma4:12b
+  # chars per disasm chunk — gemma4:12b has 256K context so most binaries
+  # fit in a single pass; raise this if you have very large binaries
+  chunk_size: 120000
+  # KV cache size in tokens (128K = safe for 16 GB VRAM with gemma4:12b)
+  # raise to 262144 only if VRAM permits and binary is exceptionally large
+  num_ctx: 131072
+  # enable chain-of-thought thinking for deeper MITRE/family reasoning
+  think: true
+
+claude:
+  # API key — can also be set via ANTHROPIC_API_KEY environment variable
+  api_key: ""
+  # Recommended models for malware analysis:
+  #   claude-opus-4-7     — highest capability, best for deep reversing
+  #   claude-sonnet-4-6   — fast + very capable, good cost/quality balance
+  #   claude-haiku-4-5-20251001  — fastest, lowest cost
+  model: claude-sonnet-4-6
+  # chars per disasm chunk (Claude Sonnet has 200K context window)
+  chunk_size: 180000
+  # max tokens in the LLM response
+  max_tokens: 8192
+  # extended thinking — deeper MITRE/family reasoning at higher token cost
+  think: false
+  think_budget_tokens: 5000
+
+claude_ollama:
+  # Ollama's Anthropic-compatible API — run local models through the Claude SDK.
+  # https://docs.ollama.com/integrations/claude-code
+  # Switch to this provider with:  provider: claude-ollama
+  base_url: http://localhost:11434   # Ollama Anthropic-compatible endpoint
+  api_key: ollama                    # any non-empty string; Ollama ignores it
+  # Any model you have pulled in Ollama, e.g.:
+  #   qwen2.5-coder:14b   — best for code/decompilation reasoning (~9 GB VRAM)
+  #   llama3.3:70b        — general reasoning, large (~40 GB)
+  #   deepseek-r1:14b     — strong reasoning, thinking traces
+  model: gemma4:12b
+  chunk_size: 120000
+  max_tokens: 8192
+
+paths:
+  samples: ./samples
+  reports: ./reports
+  rules: ./rules  # optional YARA rules dir
+
+batch:
+  samples_dir: ./samples  # directory batch.py scans for binaries
+
+web:
+  # Leave empty when this server IS the backend (default).
+  # Set to e.g. http://192.168.1.10:8080 to point the dashboard at a remote RE pipeline instance.
+  backend_url: ""
+  # Allowed CORS origins for cross-origin dashboard access. "*" permits any origin.
+  cors_origins:
+    - "*"
+
+analysis:
+  max_functions: 30  # top N functions by size to disassemble
+  min_string_len: 6
+  entropy_threshold: 7.0

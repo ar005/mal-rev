@@ -1,0 +1,18 @@
+You are a malware classification expert. Based on all analysis results below, classify this sample.
+
+Provide:
+1. **Malware family** (e.g. Emotet, Cobalt Strike, Mirai, njRAT, custom) — use "Unknown" if uncertain
+2. **Malware type** (e.g. RAT, ransomware, dropper, loader, backdoor, botnet, infostealer, wiper)
+3. **Confidence** (High / Medium / Low)
+4. **Key evidence** — 2-3 bullet points explaining your classification
+
+--- BEHAVIORAL ANALYSIS ---
+{behavior_summary}
+
+--- MITRE ATT&CK MAPPING ---
+{mitre_mapping}
+
+--- IOCs ---
+{iocs}
+
+--- CLASSIFICATION ---

@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RE Pipeline — Control Panel</title>
+<style>
+/* ── reset & base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0f0f14;
+  --surface:   #18181b;
+  --surface2:  #1f1f23;
+  --border:    #27272a;
+  --text:      #d4d4d8;
+  --text-hi:   #f4f4f5;
+  --text-dim:  #71717a;
+  --text-mid:  #a1a1aa;
+  --blue:      #60a5fa;
+  --cyan:      #a5f3fc;
+  --green:     #4ade80;
+  --yellow:    #fbbf24;
+  --red:       #f87171;
+  --purple:    #a78bfa;
+  --orange:    #fb923c;
+}
+html, body { height: 100%; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── layout ──────────────────────────────────────────────────────────────── */
+.app { display: flex; flex: 1; overflow: hidden; height: 100vh; }
+
+/* sidebar nav */
+.nav {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.nav-logo {
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo h1 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-hi);
+  letter-spacing: -0.01em;
+}
+.nav-logo p { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+.nav-links { padding: 0.75rem 0; flex: 1; }
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-mid);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: color 0.15s, background 0.15s;
+}
+.nav-link:hover  { color: var(--text-hi); background: var(--surface2); }
+.nav-link.active { color: var(--text-hi); background: var(--surface2); }
+.nav-link .icon  { font-size: 1rem; width: 1.25rem; text-align: center; }
+.nav-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* main content */
+.content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* sections */
+.section { display: none; padding: 2rem; max-width: 1100px; width: 100%; }
+.section.active { display: block; }
+
+/* ── status cards ────────────────────────────────────────────────────────── */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+}
+.card-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.card-value { font-size: 1.6rem; font-weight: 700; color: var(--text-hi); margin: 0.3rem 0 0.2rem; line-height: 1; }
+.card-sub   { font-size: 0.75rem; color: var(--text-dim); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+.dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot.dim    { background: var(--text-dim); }
+
+/* ── section titles ──────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.75rem;
+}
+
+/* ── upload zone ─────────────────────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 2.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 2rem;
+  position: relative;
+}
+.upload-zone.drag-over { border-color: var(--blue); background: rgba(96,165,250,0.05); }
+.upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.upload-zone h3 { font-size: 1rem; color: var(--text-hi); margin-bottom: 0.35rem; }
+.upload-zone p  { font-size: 0.82rem; color: var(--text-dim); }
+.upload-zone .or-bar { margin: 1rem 0; font-size: 0.75rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.75rem; }
+.upload-zone .or-bar::before, .upload-zone .or-bar::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.upload-btn {
+  display: inline-block;
+  background: var(--blue);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+/* ── job queue ───────────────────────────────────────────────────────────── */
+.job-table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+thead th {
+  text-align: left;
+  padding: 0.55rem 0.85rem;
+  color: var(--text-dim);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+}
+tbody td { padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--surface2); vertical-align: middle; }
+tbody tr:hover td { background: var(--surface2); }
+.mono { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.78rem; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.badge.pending { background: rgba(113,113,122,0.2); color: var(--text-dim); }
+.badge.running { background: rgba(96,165,250,0.15); color: var(--blue); }
+.badge.done    { background: rgba(74,222,128,0.15); color: var(--green); }
+.badge.error   { background: rgba(248,113,113,0.15); color: var(--red); }
+.spinner {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border: 2px solid transparent;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.log-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.log-btn:hover { color: var(--text-hi); border-color: var(--text-dim); }
+.empty-row td { text-align: center; padding: 2.5rem; color: var(--text-dim); }
+
+/* ── log drawer ──────────────────────────────────────────────────────────── */
+.log-drawer {
+  position: fixed;
+  bottom: 0; left: 220px; right: 0;
+  height: 280px;
+  background: #0c0c10;
+  border-top: 1px solid var(--border);
+  display: none;
+  flex-direction: column;
+  z-index: 100;
+}
+.log-drawer.open { display: flex; }
+.log-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.log-drawer-header span { font-size: 0.8rem; color: var(--text-mid); font-family: monospace; }
+.log-drawer-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1rem; }
+.log-drawer-close:hover { color: var(--text-hi); }
+.log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #9ca3af;
+}
+.log-body .log-line { white-space: pre-wrap; }
+.log-body .log-ok   { color: var(--green); }
+.log-body .log-err  { color: var(--red); }
+.log-body .log-info { color: var(--cyan); }
+
+/* ── watch panel ─────────────────────────────────────────────────────────── */
+.watch-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.watch-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.watch-status-dot.on  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.watch-status-dot.off { background: var(--text-dim); }
+.watch-info { flex: 1; }
+.watch-info h4 { font-size: 0.9rem; color: var(--text-hi); }
+.watch-info p  { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+.watch-path-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  color: var(--text-hi);
+  font-size: 0.82rem;
+  font-family: monospace;
+  width: 300px;
+  outline: none;
+}
+.watch-path-input:focus { border-color: var(--blue); }
+.btn {
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-green { background: var(--green);  color: #000; }
+.btn-red   { background: var(--red);    color: #000; }
+.btn-dim   { background: var(--surface2); border-color: var(--border); color: var(--text-mid); }
+.msg-strip {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  display: none;
+}
+.msg-strip.ok  { background: rgba(74,222,128,0.12); color: var(--green); display: block; }
+.msg-strip.err { background: rgba(248,113,113,0.12); color: var(--red);   display: block; }
+
+/* ── reports section ─────────────────────────────────────────────────────── */
+.family-tag { color: var(--yellow); font-size: 0.8rem; }
+.report-link { color: var(--blue); text-decoration: none; }
+.report-link:hover { text-decoration: underline; }
+
+/* ── config section ──────────────────────────────────────────────────────── */
+.config-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.config-row {
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+}
+.config-row:last-child { border-bottom: none; }
+.config-key   { font-size: 0.82rem; color: var(--text-dim); width: 200px; flex-shrink: 0; font-family: monospace; }
+.config-value { font-size: 0.85rem; color: var(--text-hi); font-family: monospace; }
+
+/* ── upload toast ────────────────────────────────────────────────────────── */
+.toast-stack { position: fixed; bottom: 1.5rem; right: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 200; }
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: slide-in 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.toast.ok  { border-left: 3px solid var(--green); }
+.toast.err { border-left: 3px solid var(--red); }
+@keyframes slide-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+/* scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── sidebar nav ──────────────────────────────────────────────────────── -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <h1>⚡ RE Pipeline</h1>
+      <p>Malware Analysis Control Panel</p>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showSection('dashboard')">
+        <span class="icon">⬡</span> Dashboard
+      </button>
+      <button class="nav-link" onclick="showSection('analyze')">
+        <span class="icon">⬆</span> Analyze
+      </button>
+      <button class="nav-link" onclick="showSection('jobs')">
+        <span class="icon">⟳</span> Job Queue
+      </button>
+      <button class="nav-link" onclick="showSection('reports')">
+        <span class="icon">☰</span> Reports
+      </button>
+      <button class="nav-link" onclick="showSection('watch')">
+        <span class="icon">◉</span> Watch Mode
+      </button>
+      <button class="nav-link" onclick="showSection('config')">
+        <span class="icon">⚙</span> Config
+      </button>
+    </div>
+    <div class="nav-footer" id="nav-footer">
+      {% if backend_url %}remote: {{ backend_url }}{% else %}localhost · all-local{% endif %}
+    </div>
+  </nav>
+
+  <!-- ── main content ─────────────────────────────────────────────────────── -->
+  <div class="content" id="content">
+
+    <!-- DASHBOARD ─────────────────────────────────────────────────────────── -->
+    <div class="section active" id="sec-dashboard">
+      <p class="section-title">System Status</p>
+      <div class="status-grid" id="status-grid">
+        <!-- populated by JS -->
+        <div class="card"><div class="card-label">Loading…</div></div>
+      </div>
+
+      <p class="section-title">Recent Analyses</p>
+      <div class="job-table-wrap">
+        <table id="dash-reports-table">
+          <thead><tr>
+            <th>Sample</th><th>SHA256</th><th>Classification</th><th>Code Files</th><th>Date</th>
+          </tr></thead>
+          <tbody id="dash-reports-body">
+            <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYZE ───────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-analyze">
+      <p class="section-title">Submit Sample</p>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" multiple accept="*/*">
+        <div class="upload-icon">⬆</div>
+        <h3>Drop malware samples here</h3>
+        <p>Any binary: PE, ELF, Mach-O, scripts, shellcode…</p>
+        <div class="or-bar">or</div>
+        <div class="upload-btn">Browse Files</div>
+      </div>
+      <div id="upload-feedback"></div>
+    </div>
+
+    <!-- JOB QUEUE ─────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-jobs">
+      <p class="section-title">Job Queue <span id="job-count" style="color:var(--text-dim);font-size:0.78rem;margin-left:0.5rem;"></span></p>
+      <div class="job-table-wrap">
+        <table id="jobs-table">
+          <thead><tr>
+            <th>File</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Duration</th>
+            <th>SHA256</th>
+            <th>Family</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="jobs-body">
+            <tr class="empty-row"><td colspan="7">No jobs yet. Upload a sample to start.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS ───────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-reports">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <p class="section-title" style="margin:0;">Analyzed Samples</p>
+        <a id="report-browser-link" href="/reports" class="log-btn" style="text-decoration:none;">Full Report Browser ↗</a>
+      </div>
+      <div class="job-table-wrap">
+        <table id="reports-table">
+          <thead><tr>
+            <th>Sample</th><th>SHA256</th><th>Classification</th><th>Code Files</th><th>Date</th>
+          </tr></thead>
+          <tbody id="reports-body">
+            <tr class="empty-row"><td colspan="5">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- WATCH MODE ────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-watch">
+      <p class="section-title">Directory Watch Mode</p>
+      <div class="watch-panel">
+        <div class="watch-status-dot off" id="watch-dot"></div>
+        <div class="watch-info">
+          <h4 id="watch-heading">Watch inactive</h4>
+          <p id="watch-subtext">Automatically analyzes new files dropped into a directory.</p>
+        </div>
+        <input class="watch-path-input" id="watch-path" type="text"
+               placeholder="{{ samples_path }}" value="{{ samples_path }}">
+        <button class="btn btn-green" id="watch-start-btn" onclick="watchStart()">Start</button>
+        <button class="btn btn-red"   id="watch-stop-btn"  onclick="watchStop()" style="display:none;">Stop</button>
+      </div>
+      <div class="msg-strip" id="watch-msg"></div>
+    </div>
+
+    <!-- CONFIG ────────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-config">
+      <p class="section-title">Runtime Configuration</p>
+      <div class="config-block" id="config-block">
+        <div class="config-row"><span class="config-key">Loading…</span></div>
+      </div>
+      <p style="margin-top:1rem;font-size:0.78rem;color:var(--text-dim);">
+        Edit <code style="color:var(--cyan);">config.yaml</code> and restart the server to change settings.
+      </p>
+    </div>
+
+  </div><!-- .content -->
+</div><!-- .app -->
+
+<!-- ── log drawer ──────────────────────────────────────────────────────────── -->
+<div class="log-drawer" id="log-drawer">
+  <div class="log-drawer-header">
+    <span id="log-drawer-title">Job Logs</span>
+    <button class="log-drawer-close" onclick="closeLogDrawer()">✕</button>
+  </div>
+  <div class="log-body" id="log-body"></div>
+</div>
+
+<!-- ── toast stack ─────────────────────────────────────────────────────────── -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+// ── backend base URL (empty = same origin) ────────────────────────────────────
+const BASE = "{{ backend_url }}";
+
+// fix report browser link if remote
+(function() {
+  const a = document.getElementById('report-browser-link');
+  if (BASE) a.href = BASE + '/reports';
+})();
+
+// ── nav ──────────────────────────────────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'reports') loadReports();
+  if (name === 'config')  loadConfig();
+}
+
+// ── status polling ────────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const data = await fetch(BASE + '/api/status').then(r => r.json());
+    renderStatus(data);
+  } catch(e) {
+    document.getElementById('status-grid').innerHTML =
+      '<div class="card"><div class="card-label">Could not reach server</div></div>';
+  }
+}
+
+function renderStatus(d) {
+  const dot = (ok, warn) => {
+    const cls = ok ? 'green' : (warn ? 'yellow' : 'red');
+    return `<span class="dot ${cls}"></span>`;
+  };
+  const cards = [
+    {
+      label: 'Ollama',
+      value: d.ollama ? 'Online' : 'Offline',
+      sub: d.ollama ? (d.ollama_model_ok ? `Model: ${d.ollama_model}` : `Model not found: ${d.ollama_model}`) : 'Run: ollama serve',
+      dot: dot(d.ollama, false),
+    },
+    {
+      label: 'Radare2',
+      value: d.radare2 ? 'Available' : 'Not found',
+      sub: d.radare2 ? 'r2 in PATH' : 'sudo apt install radare2',
+      dot: dot(d.radare2, false),
+    },
+    {
+      label: 'r2ghidra',
+      value: d.r2ghidra ? 'Available' : 'Not installed',
+      sub: d.r2ghidra ? 'Decompilation active' : 'r2pm -ci r2ghidra',
+      dot: dot(d.r2ghidra, !d.r2ghidra),
+    },
+    {
+      label: 'Reports',
+      value: String(d.report_count),
+      sub: d.report_count === 1 ? '1 sample analyzed' : `${d.report_count} samples analyzed`,
+      dot: '',
+    },
+    {
+      label: 'Watch Mode',
+      value: d.watch.active ? 'Active' : 'Inactive',
+      sub: d.watch.active ? d.watch.path : 'Not watching',
+      dot: d.watch.active ? '<span class="dot green"></span>' : '<span class="dot dim"></span>',
+    },
+  ];
+  document.getElementById('status-grid').innerHTML = cards.map(c => `
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value">${c.dot}${c.value}</div>
+      <div class="card-sub">${c.sub}</div>
+    </div>
+  `).join('');
+
+  // sync watch UI
+  syncWatchUI(d.watch);
+}
+
+// ── jobs polling ──────────────────────────────────────────────────────────────
+let _activeLogJob = null;
+let _logEventSource = null;
+
+async function loadJobs() {
+  try {
+    const jobs = await fetch(BASE + '/api/jobs').then(r => r.json());
+    renderJobs(jobs);
+
+    // also update dash recent reports if nothing finished recently
+    const done = jobs.filter(j => j.status === 'done');
+    if (done.length > 0) loadDashReports();
+  } catch(e) {}
+}
+
+function renderJobs(jobs) {
+  const tbody = document.getElementById('jobs-body');
+  const count = document.getElementById('job-count');
+  const running = jobs.filter(j => j.status === 'running').length;
+  const pending = jobs.filter(j => j.status === 'pending').length;
+  count.textContent = running ? `${running} running · ${pending} pending` :
+                      pending ? `${pending} pending` : `${jobs.length} total`;
+
+  if (!jobs.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No jobs yet. Upload a sample to start.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = jobs.map(j => {
+    const dur = j.started_at
+      ? j.finished_at
+        ? `${(j.finished_at - j.started_at).toFixed(1)}s`
+        : elapsed(j.started_at)
+      : '—';
+    const reportBase = BASE || '';
+    const sha = j.sha256
+      ? `<a class="report-link mono" href="${reportBase}/report/${j.sha256}">${j.sha256.slice(0,12)}…</a>`
+      : '<span class="mono" style="color:var(--text-dim)">—</span>';
+    const fam = j.family ? `<span class="family-tag">${esc(j.family)}</span>` : '—';
+    const badge = statusBadge(j);
+
+    // progress: "3/5 Disassembly" or active stage, or last completed
+    const done  = j.completed_stages || [];
+    const total = 5;
+    let progress;
+    if (j.status === 'done') {
+      progress = `<span style="color:var(--green);">${total}/${total} complete</span>`;
+    } else if (j.status === 'running' && j.stage) {
+      progress = `<span style="color:var(--cyan);">${done.length + 1}/${total} ${esc(j.stage)}</span>`;
+    } else if (done.length > 0) {
+      progress = `<span style="color:var(--text-dim);">${done.length}/${total} ${esc(done[done.length - 1])}</span>`;
+    } else {
+      progress = `<span style="color:var(--text-dim);">—</span>`;
+    }
+
+    const logBtn     = `<button class="log-btn" onclick="openLog('${j.id}','${esc(j.filename)}')">logs</button>`;
+    const resumeBtn  = j.resumable
+      ? `<button class="log-btn" style="color:var(--yellow);border-color:var(--yellow);" onclick="resumeJob('${j.id}')">resume</button>`
+      : '';
+    return `<tr>
+      <td class="mono">${esc(j.filename)}</td>
+      <td>${badge}</td>
+      <td style="font-size:0.8rem;">${progress}</td>
+      <td class="mono" style="color:var(--text-dim);">${dur}</td>
+      <td>${sha}</td>
+      <td>${fam}</td>
+      <td style="display:flex;gap:0.4rem;">${logBtn}${resumeBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+function statusBadge(j) {
+  const map = { pending: 'Pending', running: 'Running', done: 'Done', error: 'Error' };
+  const spin = j.status === 'running' ? '<span class="spinner"></span>' : '';
+  return `<span class="badge ${j.status}">${spin}${map[j.status] || j.status}</span>`;
+}
+
+function elapsed(startTs) {
+  return ((Date.now()/1000 - startTs)).toFixed(0) + 's';
+}
+
+// ── log drawer ────────────────────────────────────────────────────────────────
+function openLog(jobId, filename) {
+  if (_logEventSource) { _logEventSource.close(); _logEventSource = null; }
+  _activeLogJob = jobId;
+  document.getElementById('log-drawer-title').textContent = `Logs — ${filename}`;
+  document.getElementById('log-body').innerHTML = '';
+  document.getElementById('log-drawer').classList.add('open');
+
+  const es = new EventSource(BASE + `/api/jobs/${jobId}/logs`);
+  _logEventSource = es;
+  es.onmessage = (e) => {
+    const line = JSON.parse(e.data);
+    appendLog(line);
+  };
+  es.addEventListener('done', () => { es.close(); _logEventSource = null; });
+  es.onerror = () => { es.close(); _logEventSource = null; };
+}
+
+function appendLog(line) {
+  const body = document.getElementById('log-body');
+  const div  = document.createElement('div');
+  div.className = 'log-line ' + (line.includes('✓') || line.includes('Complete') ? 'log-ok' :
+                                 line.includes('ERROR') ? 'log-err' :
+                                 line.includes('…') ? 'log-info' : '');
+  div.textContent = line;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function closeLogDrawer() {
+  if (_logEventSource) { _logEventSource.close(); _logEventSource = null; }
+  document.getElementById('log-drawer').classList.remove('open');
+}
+
+// ── upload ────────────────────────────────────────────────────────────────────
+function initUpload() {
+  const zone  = document.getElementById('upload-zone');
+  const input = document.getElementById('file-input');
+
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    [...e.dataTransfer.files].forEach(uploadFile);
+  });
+  input.addEventListener('change', () => {
+    [...input.files].forEach(uploadFile);
+    input.value = '';
+  });
+}
+
+async function uploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  toast(`Uploading ${file.name}…`, 'info');
+  try {
+    const res  = await fetch(BASE + '/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (res.ok) {
+      toast(`Queued: ${file.name}`, 'ok');
+      showSection_direct('jobs');
+    } else {
+      toast(`Error: ${data.detail || 'upload failed'}`, 'err');
+    }
+  } catch(e) {
+    toast(`Network error uploading ${file.name}`, 'err');
+  }
+}
+
+// ── reports table ─────────────────────────────────────────────────────────────
+async function loadReports() {
+  try {
+    const reports = await fetch(BASE + '/api/reports?limit=50').then(r => r.json());
+    renderReportsTable('reports-body', reports);
+  } catch(e) {}
+}
+
+async function loadDashReports() {
+  try {
+    const reports = await fetch(BASE + '/api/reports?limit=5').then(r => r.json());
+    renderReportsTable('dash-reports-body', reports);
+  } catch(e) {}
+}
+
+function renderReportsTable(tbodyId, reports) {
+  const tbody = document.getElementById(tbodyId);
+  if (!reports.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No reports yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = reports.map(r => {
+    const date = new Date(r.mtime * 1000).toLocaleString();
+    const rBase = BASE || '';
+    return `<tr>
+      <td><a class="report-link" href="${rBase}/report/${r.sha256}">${esc(r.name)}</a></td>
+      <td class="mono" style="color:var(--text-dim)">${r.sha256.slice(0,16)}…</td>
+      <td class="family-tag">${esc(r.family)}</td>
+      <td class="mono" style="color:var(--text-dim)">${r.code_count} .c</td>
+      <td class="mono" style="color:var(--text-dim);font-size:0.75rem;">${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── watch mode ────────────────────────────────────────────────────────────────
+function syncWatchUI(watch) {
+  const dot   = document.getElementById('watch-dot');
+  const hd    = document.getElementById('watch-heading');
+  const sub   = document.getElementById('watch-subtext');
+  const start = document.getElementById('watch-start-btn');
+  const stop  = document.getElementById('watch-stop-btn');
+  const input = document.getElementById('watch-path');
+  if (watch.active) {
+    dot.className = 'watch-status-dot on';
+    hd.textContent  = 'Watch active';
+    sub.textContent = watch.path;
+    start.style.display = 'none';
+    stop.style.display  = '';
+    input.disabled = true;
+  } else {
+    dot.className = 'watch-status-dot off';
+    hd.textContent  = 'Watch inactive';
+    sub.textContent = 'Automatically analyzes new files dropped into a directory.';
+    start.style.display = '';
+    stop.style.display  = 'none';
+    input.disabled = false;
+  }
+}
+
+async function watchStart() {
+  const path = document.getElementById('watch-path').value;
+  const fd   = new FormData();
+  fd.append('path', path);
+  const res  = await fetch(BASE + '/api/watch/start', { method: 'POST', body: fd });
+  const data = await res.json();
+  showMsg('watch-msg', data.message, res.ok ? 'ok' : 'err');
+  if (res.ok) syncWatchUI(data.watch);
+}
+
+async function watchStop() {
+  const res  = await fetch(BASE + '/api/watch/stop', { method: 'POST' });
+  const data = await res.json();
+  showMsg('watch-msg', data.message, res.ok ? 'ok' : 'err');
+  syncWatchUI(data.watch);
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = `msg-strip ${type}`;
+  setTimeout(() => { el.className = 'msg-strip'; }, 4000);
+}
+
+// ── config ────────────────────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const data = await fetch(BASE + '/api/status').then(r => r.json());
+    const rows = [
+      ['ollama.model',        data.ollama_model],
+      ['ollama.reachable',    data.ollama ? 'yes' : 'no'],
+      ['radare2',             data.radare2 ? 'found in PATH' : 'not found'],
+      ['r2ghidra',            data.r2ghidra ? 'installed' : 'not installed'],
+      ['total reports',       String(data.report_count)],
+    ];
+    document.getElementById('config-block').innerHTML = rows.map(([k,v]) =>
+      `<div class="config-row"><span class="config-key">${esc(k)}</span><span class="config-value">${esc(v)}</span></div>`
+    ).join('');
+  } catch(e) {}
+}
+
+// ── resume job ────────────────────────────────────────────────────────────────
+async function resumeJob(jobId) {
+  try {
+    const res  = await fetch(BASE + `/api/jobs/${jobId}/resume`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      toast(`Resuming job from last checkpoint…`, 'ok');
+      showSection_direct('jobs');
+    } else {
+      toast(`Resume failed: ${data.detail || 'unknown error'}`, 'err');
+    }
+  } catch(e) {
+    toast('Network error during resume', 'err');
+  }
+}
+
+// ── toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const stack = document.getElementById('toast-stack');
+  const el    = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${esc(msg)}</span>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showSection_direct(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  const links = document.querySelectorAll('.nav-link');
+  links.forEach(l => { if (l.textContent.trim().toLowerCase().includes(name)) l.classList.add('active'); });
+}
+
+// ── boot ──────────────────────────────────────────────────────────────────────
+initUpload();
+loadStatus();
+loadJobs();
+loadDashReports();
+
+// poll status every 5s, jobs every 2s
+setInterval(loadStatus, 5000);
+setInterval(loadJobs,   2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+You are a malware analyst. Analyze the following disassembly from a binary sample.
+Where available the disassembly has been decompiled to C pseudocode (via r2ghidra) — prefer reasoning from the C code when present; raw assembly is shown for functions that could not be decompiled.
+
+Describe in plain English what this code does. Focus on:
+- Core functionality and purpose
+- Suspicious or malicious behaviors (e.g. process injection, persistence, network communication, file manipulation, anti-analysis)
+- Any notable techniques or patterns observed
+
+Be concise but thorough. Use bullet points for key behaviors.
+
+--- EXTRACTED STRINGS (sample) ---
+{strings}
+
+--- DISASSEMBLY / DECOMPILED CODE ---
+{disassembly}
+
+--- ANALYSIS ---

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Callable
@@ -167,6 +168,89 @@ def _build_analysis_chunks(sample: Sample, chunk_size: int) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Regex IOC extractor  (runs on raw strings + decompiled C — never misses plaintext)
+# ---------------------------------------------------------------------------
+
+# Exclude obvious false positives: version quads, private ranges, loopback
+_PRIV_IP = re.compile(
+    r'^(0\.|127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|'
+    r'(?:\d+\.){3}0$|'           # network addresses ending in .0
+    r'(?:0|1|2|4)\.\d+\.\d+\.\d+$)'  # 0.x, 1.x, 2.x, 4.x version-like quads
+)
+_IP_RE     = re.compile(r'\b((?:\d{1,3}\.){3}\d{1,3})\b')
+_URL_RE    = re.compile(r'(https?://[^\s\)\]\'\"<>{},;\\]{8,})', re.I)
+_DOMAIN_RE = re.compile(
+    r'\b((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)'
+    r'+(?:com|net|org|io|ru|cn|cc|pw|top|xyz|biz|info|gov|edu|onion|me|co|tk|ml))\b',
+    re.I,
+)
+# Common FP domains to skip
+_DOMAIN_FP = {
+    "system.io", "system.net", "system.com", "command.com",
+    "nsis.sf.net", "openssl.org", "example.com", "schema.org",
+    "www.w3.org", "microsoft.com", "windows.net",
+}
+
+
+def _regex_iocs(sample: Sample) -> str:
+    """Sweep raw strings + decompiled C for network IOCs the LLM might miss."""
+    corpus_parts: list[str] = list(sample.static.get("strings", []))
+    for c_code in sample.decompiled.values():
+        corpus_parts.append(c_code)
+    corpus = "\n".join(corpus_parts)
+
+    ips, urls, domains = set(), set(), set()
+
+    for m in _URL_RE.finditer(corpus):
+        u = m.group(1).rstrip(".,;)")
+        urls.add(u)
+
+    for m in _IP_RE.finditer(corpus):
+        ip = m.group(1)
+        if not _PRIV_IP.match(ip):
+            # validate octets
+            if all(0 <= int(o) <= 255 for o in ip.split(".")):
+                ips.add(ip)
+
+    for m in _DOMAIN_RE.finditer(corpus):
+        d = m.group(1).lower()
+        if d not in _DOMAIN_FP and len(d) > 6:
+            domains.add(d)
+
+    # Remove domains already covered by URLs
+    url_hosts = set()
+    for u in urls:
+        try:
+            host = u.split("//", 1)[1].split("/")[0].split(":")[0]
+            url_hosts.add(host.lower())
+        except IndexError:
+            pass
+    domains -= url_hosts
+
+    if not ips and not urls and not domains:
+        return ""
+
+    lines = ["\n\n---\n**Regex-extracted plaintext IOCs** *(from static strings + decompiled C)*"]
+    if urls:
+        lines.append("\n**URLs:**")
+        for u in sorted(urls):
+            lines.append(f"- `{u}`")
+    if ips:
+        lines.append("\n**IP addresses:**")
+        for ip in sorted(ips):
+            lines.append(f"- `{ip}`")
+    if domains:
+        lines.append("\n**Domains:**")
+        for d in sorted(domains):
+            lines.append(f"- `{d}`")
+
+    found = len(urls) + len(ips) + len(domains)
+    log.info("Regex IOC sweep: %d indicator(s) found (urls=%d ips=%d domains=%d)",
+             found, len(urls), len(ips), len(domains))
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Stage entry point
 # ---------------------------------------------------------------------------
 
@@ -270,6 +354,12 @@ def run(sample: Sample, cfg: dict) -> Sample:
         ),
         provider_cfg,
     )
+
+    # Append regex-extracted plaintext IOCs so nothing visible in strings is ever missed.
+    # This runs regardless of provider and supplements (never replaces) the LLM output.
+    regex_iocs = _regex_iocs(sample)
+    if regex_iocs:
+        sample.iocs = (sample.iocs or "") + regex_iocs
 
     log.info("LLM analysis complete")
     return sample

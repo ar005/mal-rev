@@ -1,5 +1,5 @@
 # LLM provider: "ollama" (local) or "claude" (Anthropic API)
-provider: ollama
+provider: claude-ollama
 
 ollama:
   base_url: http://localhost:11434
@@ -34,18 +34,22 @@ claude:
   think_budget_tokens: 5000
 
 claude_ollama:
-  # Ollama's Anthropic-compatible API — run local models through the Claude SDK.
-  # https://docs.ollama.com/integrations/claude-code
+  # Native Ollama API pointed at a remote (or local) Ollama instance.
   # Switch to this provider with:  provider: claude-ollama
-  base_url: http://localhost:11434   # Ollama Anthropic-compatible endpoint
-  api_key: ollama                    # any non-empty string; Ollama ignores it
-  # Any model you have pulled in Ollama, e.g.:
-  #   qwen2.5-coder:14b   — best for code/decompilation reasoning (~9 GB VRAM)
-  #   llama3.3:70b        — general reasoning, large (~40 GB)
-  #   deepseek-r1:14b     — strong reasoning, thinking traces
+  base_url: http://localhost:11434
   model: gemma4:12b
   chunk_size: 120000
-  max_tokens: 8192
+  num_ctx: 131072
+  think: true
+
+timeouts:
+  ingestion: 300       # 5 min
+  unpacking: 300       # 5 min
+  static: 300          # 5 min
+  disassembly: 900     # 15 min  (p95=6m, p99=36m — only extreme outliers cut)
+  llm: 3600            # 60 min  whole LLM stage hard ceiling
+  llm_call: 300        # 5 min   per individual Ollama HTTP call (max observed: 4m16s)
+  reporting: 300       # 5 min
 
 paths:
   samples: ./samples

@@ -253,9 +253,24 @@ def capture_logs(sha256: str):
 
 # ── pipeline runner ───────────────────────────────────────────────────────────
 
+STAGE_TIMEOUTS = {
+    "ingestion":   5 * 60,
+    "unpacking":   5 * 60,
+    "static":      5 * 60,
+    "disassembly": 15 * 60,
+    "llm":         60 * 60,
+    "reporting":   5 * 60,
+}
+
+
 def run_sample(sha256: str, path: Path, cfg: dict, state: BatchState) -> bool:
-    """Run all five pipeline stages for one sample. Returns True on success."""
+    """Run all pipeline stages for one sample. Returns True on success."""
     from pipeline import ingestion, unpacking, static_analysis, disassembly, llm_analysis, reporting
+    from pipeline.timeout import StageTimeoutError, stage_timeout
+
+    # Allow config to override per-stage timeouts (seconds)
+    cfg_timeouts = cfg.get("timeouts", {})
+    timeouts = {k: cfg_timeouts.get(k, v) for k, v in STAGE_TIMEOUTS.items()}
 
     stages = [
         ("ingestion",   lambda s: ingestion.load_sample(path)),
@@ -270,8 +285,13 @@ def run_sample(sha256: str, path: Path, cfg: dict, state: BatchState) -> bool:
     for stage_name, fn in stages:
         state.set_status(sha256, "running", stage=stage_name)
         log.info("=== stage: %s ===", stage_name)
+        limit = timeouts.get(stage_name, 5 * 60)
         try:
-            sample = fn(sample)
+            with stage_timeout(limit, stage_name):
+                sample = fn(sample)
+        except StageTimeoutError as exc:
+            log.error("TIMEOUT in stage '%s': %s", stage_name, exc)
+            return False
         except Exception as exc:
             log.error("stage '%s' failed: %s", stage_name, exc, exc_info=True)
             return False
